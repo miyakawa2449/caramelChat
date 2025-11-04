@@ -1,80 +1,233 @@
 <img src="common/src/main/resources/icon.png" width="96" alt="caramelChat Icon"/>
 
-# caramelChat
-Provides an enhanced IME input experience in Minecraft.
+# caramelChat-Tahoe
+
+**Enhanced IME (Input Method Editor) support for Minecraft with CJK language input - macOS 26 Tahoe Compatible Fork**
+
+[![License: LGPL v3](https://img.shields.io/badge/License-LGPL%20v3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)
+[![Minecraft](https://img.shields.io/badge/Minecraft-1.21.10-green.svg)](https://minecraft.net/)
+[![Java](https://img.shields.io/badge/Java-21%20LTS-orange.svg)](https://openjdk.org/)
+
+🍯 **Forked from [LemonCaramel/caramelChat](https://github.com/LemonCaramel/caramelChat)**
+
+🌏 **[日本語版 README](README-ja.md)** | **[English README](README.md)**
+
+---
+
+## 🚨 Important Notice
+
+This is a **community fork** specifically created to address **macOS 26 Tahoe compatibility issues**. 
+
+**For general caramelChat support**, please refer to the [original repository](https://github.com/LemonCaramel/caramelChat).
+
+**For macOS 26 Tahoe-specific issues**, use this fork's [Issues page](https://github.com/miyakawa2449/caramelChat/issues).
 
 ---
 
 ## 📕 Introduction
-caramelChat is modern chat mod inspired by the input method of [CocoaInput](https://github.com/Axeryok/CocoaInput).
+
+caramelChat-Tahoe is a specialized fork of the original caramelChat mod, designed to provide seamless IME input experience for CJK (Chinese, Japanese, Korean) languages in Minecraft, **with specific focus on macOS 26 Tahoe compatibility**.
+
+The original caramelChat, inspired by [CocoaInput](https://github.com/Axeryok/CocoaInput), enables real-time display of pre-edit text (未確定文字) during Japanese input. However, due to compatibility issues with macOS 26 Tahoe, this fork is developing a new implementation using LWJGL/GLFW.
+
+### ✨ Key Features
+
+- **macOS 26 Tahoe Support**: Dedicated compatibility for the latest macOS
+- **Real-time Pre-edit Text Display**: See your Japanese hiragana input before conversion
+- **Multi-platform Support**: Works on Windows, macOS, and Linux
+- **Multi-loader Compatibility**: Supports Fabric, Forge, and NeoForge
+- **Enhanced Chat Experience**: Improved visual feedback for CJK language input
+- **Keyboard Status Display**: Visual indicator for current input method
+
+### 🔄 Differences from Original
+
+- **macOS 26 Detection**: Enhanced detection and warning for macOS 26 users
+- **LWJGL/GLFW Implementation**: (In Development) New IME handler to replace CocoaInput-lib
+- **Java 21 LTS**: Unified development environment
+- **Enhanced Debugging**: Detailed logging for troubleshooting macOS 26 issues
+
+---
+
+## 🚀 Quick Start
+
+### Requirements
+
+- **Minecraft**: 1.21.10+
+- **Java**: 21 LTS or later
+- **Mod Loader**: Fabric 0.17.3+ / Forge / NeoForge
+
+### Installation
+
+1. Download the latest release from [Fork Releases](https://github.com/miyakawa2449/caramelChat/releases)
+2. Place the `.jar` file in your `mods` folder
+3. Launch Minecraft with your preferred mod loader
+4. Enable Japanese IME and start typing in chat (T key)
+
+---
 
 ## 💻 Compatibility
-Currently, caramelChat uses [CocoaInput-lib](https://github.com/Korea-Minecraft-Forum/CocoaInput-lib).
-It must be the same as the OS compatibility of CocoaInput.
 
-We plan to use our Native library in caramelChat v2.0.
-Compatibility will gradually improve.
+### Operating System Support
 
-|             OS              |         Compatibility         |
-|:---------------------------:|:-----------------------------:|
-|    **Windows** (x86_64)     |         🟢 Compatible         |
-|     **Windows** (arm64)     |        🔴 Incompatible        |
-|      **macOS** (Intel)      |         🟢 Compatible         |
-|  **macOS** (Apple Silicon)  |         🟢 Compatible         |
-|   **Linux X11** (x86_64)    | 🟡 Incompatible in some cases |
-|    **Linux X11** (arm64)    |        🔴 Incompatible        |
-| **Linux Wayland** (x86_64)  | 🟡 Incompatible in some cases |
-|  **Linux Wayland** (arm64)  |        🔴 Incompatible        |
+|             OS              |        Status         |                    Notes                    |
+|:---------------------------:|:--------------------:|:-------------------------------------------:|
+|    **Windows** (x86_64)     |     🟢 Compatible     |               Full support                |
+|     **Windows** (arm64)     |    🔴 Incompatible    |           Not yet supported             |
+|      **macOS** (Intel)      |     🟢 Compatible     |               Full support                |
+|  **macOS** (Apple Silicon)  |     🟢 Compatible     |               Full support                |
+|    **macOS 26 Tahoe**       |     🟡 In Progress    | **This fork's primary focus** - Developing LWJGL/GLFW solution |
+|   **Linux X11** (x86_64)    | 🟡 Partial Support   |        May require configuration        |
+|    **Linux X11** (arm64)    |    🔴 Incompatible    |           Not yet supported             |
+| **Linux Wayland** (x86_64)  | 🟡 Partial Support   |    See Wayland troubleshooting below    |
+|  **Linux Wayland** (arm64)  |    🔴 Incompatible    |           Not yet supported             |
 
-Below is the ModLoader compatibility.
+### Mod Loader Support
 
-|    Platform    |    Support    |
-|:--------------:|:-------------:|
-| Fabric / Quilt | 🟢 Compatible |
-|     Forge      | 🟢 Compatible |
-|    NeoForge    | 🟢 Compatible |
+|    Platform    |    Status     |     Version     |
+|:--------------:|:-------------:|:---------------:|
+| Fabric / Quilt | 🟢 Compatible |    0.17.3+     |
+|     Forge      | 🟢 Compatible | 1.21.10-60.0.15+ |
+|    NeoForge    | 🟢 Compatible | 21.10.47-beta+ |
 
-## 🛠️ Troubleshooting (macOS 14.0+)
-If you are using macOS Sonoma or later versions, you may experience the following issue:
-- Some characters are skipped when typing very quickly.
-- The client crashes when a system key is pressed (e.g., input source switch).
+---
 
-Most of the causes are due to the Input Tooltip added in Sonoma. However, Apple has not provided an API to disable it.
+## ⚠️ macOS 26 Tahoe Status
 
-![macOS Sonoma Indicator](https://github.com/LemonCaramel/caramelChat/assets/45729082/e1d34917-1892-4cb6-aa3f-38fdab58fad9)
+### Current Status
 
+**🚧 In Development**: LWJGL/GLFW-based IME implementation
 
-You can disable the Input Tooltip system-wide through the following guide.
+**Current Issues**:
+- Pre-edit text display works ~50% of the time for the first word
+- Pre-edit text rarely displays for subsequent words
+- Text display may freeze mid-input while actual input continues
 
-Open the Terminal and enter the following command:
-```Bash
+**Root Cause**: CocoaInput-lib incompatibility with macOS 26 Tahoe (released September 2025)
+
+### Development Progress
+
+- ✅ **Problem Diagnosis**: Identified CocoaInput-lib + macOS 26 compatibility issue
+- ✅ **Environment Setup**: Java 21 LTS unified development environment
+- ✅ **Investigation Report**: Comprehensive analysis completed
+- 🚧 **LWJGL/GLFW Implementation**: Phase 1 - In Progress
+- ⏳ **Testing & Optimization**: Phase 2 - Pending
+- ⏳ **Release**: Phase 3 - Pending
+
+### For macOS 26 Users
+
+1. **Current Workaround**: None available - confirmed text input works normally
+2. **Reporting Issues**: Use this fork's [Issues](https://github.com/miyakawa2449/caramelChat/issues)
+3. **Updates**: Watch this repository for development progress
+
+---
+
+## 🛠️ Troubleshooting
+
+### macOS 14.0+ (Sonoma) Input Tooltip
+
+If you are using macOS Sonoma or later versions, you may experience:
+- Characters being skipped when typing quickly
+- Client crashes when system keys are pressed (e.g., input source switch)
+
+**Solution**: Disable the Input Tooltip system-wide:
+
+```bash
 sudo mkdir -p /Library/Preferences/FeatureFlags/Domain
 sudo /usr/libexec/PlistBuddy -c "Add 'redesigned_text_cursor:Enabled' bool false" /Library/Preferences/FeatureFlags/Domain/UIKit.plist
 ```
-And then, reboot your Macintosh. This will return you to the input environment from before Sonoma.
 
-## 🛠️ Troubleshooting (Linux Wayland)
+Then reboot your Mac.
 
-In some Linux distributions that use the Wayland protocol, crashes may occur.
-This happens because Xwayland is present in the system, causing GLFW to attempt to run based on X11.
+### Linux Wayland
 
-Fortunately, there are third-party mods available to address this issue.
+**Solution**: Use WayGL mod for better Wayland compatibility:
+- **WayGL**: [Modrinth](https://modrinth.com/mod/waygl) | [GitHub](https://github.com/wired-tomato/WayGL)
 
-**WayGL:** [Modrinth](https://modrinth.com/mod/waygl), [Github](https://github.com/wired-tomato/WayGL)
+### Linux Fcitx5
 
-## 🛠️ Troubleshooting (Linux Fcitx5)
+1. Open `fcitx5-config-qt`
+2. Navigate to `Fcitx Configuration → Addons`
+3. Find `X Input Method Frontend` and click the settings button
+4. Enable `Use On The Spot Style (Needs restarting)`
+5. Reboot your system
 
-Fcitx5 may not work without using the "On The Spot" style.
+---
 
-1. Assuming your configuration program is `fcitx5-config-qt`, Head to `Fcitx Configuration -> Addons`, find `X Input Method Frontend` and click the cog button in its row.
-2. Enable the `Use On The Spot Style (Needs restarting)` option then reboot.
-3. It should be working now.
+## 🏗️ Development
 
-## 🚀️ Contributing
-All contributions are welcome regardless of Native or Java.
+### Building from Source
+
+```bash
+git clone https://github.com/miyakawa2449/caramelChat.git
+cd caramelChat
+./gradlew build
+```
+
+### Requirements
+
+- **Java**: 21 LTS
+- **Gradle**: 8.14.1+
+
+### Project Structure
+
+```
+caramelChat/
+├── common/          # Shared code for all platforms
+├── fabric/          # Fabric-specific implementation
+├── forge/           # Forge-specific implementation
+├── neoforge/        # NeoForge-specific implementation
+└── reports/         # Investigation and development reports (Fork-specific)
+```
+
+---
+
+## 📞 Support & Issues
+
+### For This Fork (macOS 26 Tahoe issues)
+
+- **Bug Reports**: [miyakawa2449/caramelChat Issues](https://github.com/miyakawa2449/caramelChat/issues)
+- **Feature Requests**: Related to macOS 26 compatibility
+- **Development Updates**: Watch this repository
+
+### For Original caramelChat (General issues)
+
+- **General Issues**: [LemonCaramel/caramelChat Issues](https://github.com/LemonCaramel/caramelChat/issues)
+- **Original Documentation**: [Original Wiki](https://github.com/LemonCaramel/caramelChat/wiki)
+- **Original Releases**: [Original Releases](https://github.com/LemonCaramel/caramelChat/releases)
+
+---
+
+## 🚀 Contributing
+
+Contributions are welcome, especially for:
+
+- **macOS 26 Compatibility**: Help with LWJGL/GLFW implementation
+- **Testing**: Test on different macOS 26 configurations
+- **Bug Reports**: Report macOS 26-specific issues
+- **Documentation**: Improve macOS 26 troubleshooting guides
+
+### Development Guidelines
+
+- Follow existing code style and conventions
+- Focus on macOS 26 compatibility improvements
+- Include tests for new features
+- Update documentation as needed
+
+---
 
 ## 📜 License
-caramelChat is licensed under GNU LGPLv3, a free and open-source license. For more information, please see the [license file](LICENSE).
 
-When submitting pull requests to this repository, it is assumed that you are licensing your contribution under the
-GNU LGPLv3, unless you state otherwise.
+caramelChat-Tahoe is licensed under [GNU LGPLv3](LICENSE), same as the original project.
+
+---
+
+## 🙏 Acknowledgments
+
+- **[LemonCaramel/caramelChat](https://github.com/LemonCaramel/caramelChat)**: Original project and inspiration
+- **[CocoaInput](https://github.com/Axeryok/CocoaInput)**: Original IME implementation reference
+- **[CocoaInput-lib](https://github.com/Korea-Minecraft-Forum/CocoaInput-lib)**: Native library foundation
+- **Minecraft Modding Community**: Tools, documentation, and support
+
+---
+
+*Specialized fork for macOS 26 Tahoe compatibility - Made with ❤️ for the Minecraft CJK community*

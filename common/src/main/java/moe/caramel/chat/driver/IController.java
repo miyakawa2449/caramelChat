@@ -55,23 +55,43 @@ public interface IController {
      */
     static IController getController() {
         try {
-            return switch (GLFW.glfwGetPlatform()) {
+            final int platform = GLFW.glfwGetPlatform();
+            ModLogger.log("[DEBUG-INIT] Detected GLFW platform: {}", platform);
+            ModLogger.log("[DEBUG-INIT] GLFW_PLATFORM_COCOA = {}", GLFW.GLFW_PLATFORM_COCOA);
+            
+            return switch (platform) {
                 // Windows
-                case GLFW.GLFW_PLATFORM_WIN32 -> new WinController();
+                case GLFW.GLFW_PLATFORM_WIN32 -> {
+                    ModLogger.log("[DEBUG-INIT] Creating WinController");
+                    yield new WinController();
+                }
                 // macOS
-                case GLFW.GLFW_PLATFORM_COCOA -> new DarwinController();
+                case GLFW.GLFW_PLATFORM_COCOA -> {
+                    ModLogger.log("[DEBUG-INIT] Creating DarwinController for macOS");
+                    yield new DarwinController();
+                }
                 // Linux (X11)
-                case GLFW.GLFW_PLATFORM_X11 -> new X11Controller();
+                case GLFW.GLFW_PLATFORM_X11 -> {
+                    ModLogger.log("[DEBUG-INIT] Creating X11Controller");
+                    yield new X11Controller();
+                }
                 // Linux (Wayland)
-                case GLFW.GLFW_PLATFORM_WAYLAND -> new WaylandController();
+                case GLFW.GLFW_PLATFORM_WAYLAND -> {
+                    ModLogger.log("[DEBUG-INIT] Creating WaylandController");
+                    yield new WaylandController();
+                }
                 // What?
-                default -> throw new UnsupportedOperationException();
+                default -> {
+                    ModLogger.log("[DEBUG-INIT] Unsupported platform: {}", platform);
+                    throw new UnsupportedOperationException();
+                }
             };
         } catch (final UnsupportedOperationException ignored) {
             ModLogger.error("This platform is not supported by CocoaInput Driver.");
         } catch (final Exception exception) {
             ModLogger.error("Error while loading the CocoaInput Driver.", exception);
         }
+        ModLogger.log("[DEBUG-INIT] Falling back to UnknownController");
         return UnknownController.INSTANCE;
     }
 }

@@ -7,6 +7,7 @@ import moe.caramel.chat.driver.IController;
 import moe.caramel.chat.driver.IOperator;
 import moe.caramel.chat.driver.KeyboardStatus;
 import moe.caramel.chat.driver.KeyboardStatus.Language;
+import moe.caramel.chat.driver.arch.lwjgl.LWJGLController;
 import moe.caramel.chat.util.ModLogger;
 import moe.caramel.chat.wrapper.AbstractIMEWrapper;
 import net.minecraft.client.gui.screens.Screen;
@@ -18,26 +19,73 @@ import java.util.Locale;
 public final class DarwinController implements IController {
 
     private final Driver_Darwin driver;
+    private final LWJGLController lwjglController;
+    private final boolean useLWJGL;
 
     /**
      * Create Darwin Controller
      */
     public DarwinController() {
-        ModLogger.log("[Native] Load the Darwin Controller.");
-        this.driver = Native.load(Main.copyLibrary("libdarwincocoainput.dylib"), Driver_Darwin.class);
-        this.driver.initialize(
-            // Info
-            (log) -> ModLogger.log("[Native|C] " + log),
-            // Error
-            (log) -> ModLogger.error("[Native|C] " + log),
-            // Debug
-            (log) -> ModLogger.debug("[Native|C] " + log)
-        );
+        ModLogger.log("[DEBUG-INIT] *** DarwinController constructor START ***");
+        
+        // Check macOS version compatibility and decide implementation
+        String osVersion = System.getProperty("os.version");
+        ModLogger.log("[DEBUG-INIT] Detected macOS version: {}", osVersion);
+        
+        // Determine if we should use LWJGL implementation for macOS 26+
+        this.useLWJGL = osVersion != null && osVersion.startsWith("26.");
+        
+        if (this.useLWJGL) {
+            ModLogger.log("[INFO] macOS Tahoe 26.x detected - Using LWJGL/GLFW implementation");
+            ModLogger.log("[INFO] CocoaInput-lib will be bypassed for compatibility");
+            
+            // Initialize LWJGL controller
+            this.lwjglController = new LWJGLController();
+            this.driver = null; // Not used for LWJGL implementation
+            
+            ModLogger.log("[DEBUG-INIT] *** DarwinController (LWJGL mode) initialization COMPLETED ***");
+        } else {
+            ModLogger.log("[INFO] macOS version < 26 detected - Using traditional CocoaInput-lib implementation");
+            
+            // Initialize traditional CocoaInput-lib implementation
+            this.lwjglController = null;
+            
+            ModLogger.log("[Native] Load the Darwin Controller.");
+            try {
+                this.driver = Native.load(Main.copyLibrary("libdarwincocoainput.dylib"), Driver_Darwin.class);
+                ModLogger.log("[DEBUG-INIT] Native library loaded successfully");
+                
+                this.driver.initialize(
+                    // Info
+                    (log) -> ModLogger.log("[Native|C] " + log),
+                    // Error
+                    (log) -> ModLogger.error("[Native|C] " + log),
+                    // Debug
+                    (log) -> ModLogger.log("[Native|C] DEBUG: " + log)
+                );
+                ModLogger.log("[DEBUG-INIT] *** DarwinController (CocoaInput mode) initialization COMPLETED ***");
+            } catch (Exception e) {
+                ModLogger.error("[ERROR] Failed to initialize DarwinController: {}", e.getMessage());
+                throw e;
+            }
+        }
     }
 
     @Override
     public IOperator createOperator(final AbstractIMEWrapper wrapper) {
-        return new DarwinOperator(this, wrapper);
+        ModLogger.log("[DEBUG-INIT] DarwinController.createOperator called for wrapper: {}", wrapper.getClass().getSimpleName());
+        
+        if (this.useLWJGL) {
+            // Delegate to LWJGL controller
+            ModLogger.log("[DEBUG-INIT] Using LWJGL implementation");
+            return this.lwjglController.createOperator(wrapper);
+        } else {
+            // Use traditional CocoaInput-lib implementation
+            ModLogger.log("[DEBUG-INIT] Using CocoaInput-lib implementation");
+            DarwinOperator operator = new DarwinOperator(this, wrapper);
+            ModLogger.log("[DEBUG-INIT] DarwinOperator created successfully");
+            return operator;
+        }
     }
 
     @Override
@@ -46,17 +94,28 @@ public final class DarwinController implements IController {
             return;
         }
 
-        this.driver.refreshInstance();
+        if (this.useLWJGL) {
+            // Delegate to LWJGL controller
+            this.lwjglController.changeFocusedScreen(screen);
+        } else {
+            // Use traditional CocoaInput-lib implementation
+            this.driver.refreshInstance();
+        }
     }
 
     @Override
     public void setFocus(final boolean focus) {
+        if (this.useLWJGL) {
+            // Delegate to LWJGL controller
+            this.lwjglController.setFocus(focus);
+        }
+        // CocoaInput-lib implementation doesn't need setFocus
     }
 
     /**
-     * Gets the Driver
+     * Gets the Driver (only available for CocoaInput-lib implementation)
      *
-     * @return driver
+     * @return driver, or null if using LWJGL implementation
      */
     public Driver_Darwin getDriver() {
         return driver;
@@ -64,6 +123,23 @@ public final class DarwinController implements IController {
 
     @Override
     public KeyboardStatus getKeyboardStatus() {
+        if (this.useLWJGL) {
+            // Delegate to LWJGL controller
+            return this.lwjglController.getKeyboardStatus();
+        } else {
+            // Use traditional CocoaInput-lib implementation
+            final String imeSource = driver.getStatus();
+            ModLogger.debug("[DEBUG-IME] getKeyboardStatus - raw IME source: '{}'", imeSource);
+            
+            if (imeSource == null) {
+                ModLogger.debug("[DEBUG-IME] getKeyboardStatus - IME source is null");
+                return null;
+            }
+
+            final Language source = DarwinController.parseSourceFromString(imeSource.toLowerCase(Locale.ENGLISH));
+            ModLogger.debug("[DEBUG-IME] getKeyboardStatus - parsed language: {}", source);
+            return new KeyboardStatus(source, true);
+        }
         /*
         I can not handle this!!!!
         https://github.com/minoki/InputSourceSelector
@@ -374,14 +450,6 @@ public final class DarwinController implements IController {
         com.apple.inputmethod.TCIM.Pinyin (Pinyin - Traditional)
         com.apple.inputmethod.TCIM.Shuangpin (Shuangpin - Traditional)
         */
-
-        final String imeSource = driver.getStatus();
-        if (imeSource == null) {
-            return null;
-        }
-
-        final Language source = DarwinController.parseSourceFromString(imeSource.toLowerCase(Locale.ENGLISH));
-        return new KeyboardStatus(source, true);
     }
 
     private static Language parseSourceFromString(final String imeSource) {

@@ -20,8 +20,11 @@ public abstract class AbstractIMEWrapper {
     }
 
     protected AbstractIMEWrapper(final String defValue) {
+        ModLogger.debug("[DEBUG-INIT] AbstractIMEWrapper constructor called with default value: '{}'", defValue);
         this.ime = Main.getController().createOperator(this);
+        ModLogger.debug("[DEBUG-INIT] IME Operator created: {}", this.ime.getClass().getSimpleName());
         this.origin = defValue;
+        ModLogger.debug("[DEBUG-INIT] AbstractIMEWrapper constructor completed");
     }
 
     /**
@@ -56,8 +59,10 @@ public abstract class AbstractIMEWrapper {
      * Sets the current input status to none.
      */
     public final void setToNoneStatus() {
+        ModLogger.debug("[DEBUG-STATE] setToNoneStatus: {} -> NONE (origin: '{}')", this.status, this.origin);
         this.status = InputStatus.NONE;
         this.setPreviewText(this.origin);
+        ModLogger.debug("[DEBUG-STATE] setToNoneStatus completed");
     }
 
     /**
@@ -123,10 +128,12 @@ public abstract class AbstractIMEWrapper {
      */
     public final void appendPreviewText(final String typing) {
         if (!this.editable()) {
+            ModLogger.debug("[DEBUG-IME] appendPreviewText BLOCKED - not editable");
             return;
         }
 
-        ModLogger.debug("[Preview] Current: ({}) / Preview: ({})", this.origin, typing);
+        ModLogger.log("[DEBUG-IME] *** appendPreviewText START *** - current: '{}', preview: '{}', current status: {}", this.origin, typing, this.status);
+        ModLogger.log("[DEBUG-STATE] appendPreviewText: {} -> PREVIEW", this.status);
         this.status = InputStatus.PREVIEW;
 
         final int start = Math.min(this.getCursorPos(), this.getHighlightPos());
@@ -147,7 +154,9 @@ public abstract class AbstractIMEWrapper {
             final String result = (this.origin + typing);
             this.firstEndPos = this.origin.length();
             this.secondStartPos = result.length();
+            ModLogger.log("[DEBUG-IME] appendPreviewText LAST POS - result: '{}', firstEndPos: {}, secondStartPos: {}", result, this.firstEndPos, this.secondStartPos);
             this.setPreviewText(result);
+            ModLogger.log("[DEBUG-IME] *** appendPreviewText COMPLETED (LAST POS) ***");
         }
         // Selected
         else {
@@ -175,10 +184,12 @@ public abstract class AbstractIMEWrapper {
      */
     public final void insertText(final String input) {
         if (this.blockTyping() || !this.editable()) {
+            ModLogger.debug("[DEBUG-IME] insertText BLOCKED - blockTyping: {}, editable: {}", this.blockTyping(), this.editable());
             return;
         }
 
-        ModLogger.debug("[Complete] Current: ({}) / Preview: ({})", this.origin, input);
+        ModLogger.log("[DEBUG-IME] *** insertText START *** - current: '{}', input: '{}', current status: {}", this.origin, input, this.status);
+        ModLogger.log("[DEBUG-STATE] insertText: {} -> NONE (confirming text)", this.status);
         this.status = InputStatus.NONE;
         this.firstEndPos = -1;
         this.secondStartPos = -1;
@@ -186,6 +197,7 @@ public abstract class AbstractIMEWrapper {
         this.setPreviewText(this.origin);
         this.insert(input);
         this.origin = this.getTextWithPreview();
+        ModLogger.log("[DEBUG-IME] *** insertText COMPLETED *** - final origin: '{}'", this.origin);
     }
 
     /**

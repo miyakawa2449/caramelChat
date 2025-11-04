@@ -1,5 +1,6 @@
 package moe.caramel.chat.wrapper;
 
+import moe.caramel.chat.util.ModLogger;
 import moe.caramel.chat.util.Rect;
 import net.minecraft.client.gui.components.EditBox;
 
@@ -14,8 +15,10 @@ public final class WrapperEditBox extends AbstractIMEWrapper {
 
     public WrapperEditBox(final EditBox box) {
         super(box.value);
+        ModLogger.debug("[DEBUG-INIT] WrapperEditBox constructor called with value: '{}'", box.value);
         this.wrapped = box;
         this.insertCallback = () -> {}; // Empty Callback
+        ModLogger.debug("[DEBUG-INIT] WrapperEditBox constructor completed");
     }
 
     @Override
@@ -60,12 +63,16 @@ public final class WrapperEditBox extends AbstractIMEWrapper {
 
     @Override
     protected void setPreviewText(final String text) {
+        ModLogger.log("[DEBUG-IME] *** setPreviewText START *** - text: '{}', current value: '{}', isFocused: {}", text, this.wrapped.value, this.wrapped.isFocused());
         this.valueChanged = true;
         this.wrapped.setValue(text);
+        ModLogger.log("[DEBUG-IME] setValue completed - new value: '{}'", this.wrapped.value);
 
         if (this.wrapped.isFocused()) {
+            ModLogger.log("[DEBUG-IME] Calling insertCallback");
             this.insertCallback.run();
         }
+        ModLogger.log("[DEBUG-IME] *** setPreviewText COMPLETED ***");
     }
 
     @Override

@@ -1,6 +1,7 @@
 package moe.caramel.chat.mixin;
 
 import moe.caramel.chat.controller.EditBoxController;
+import moe.caramel.chat.util.ModLogger;
 import moe.caramel.chat.wrapper.AbstractIMEWrapper;
 import moe.caramel.chat.wrapper.WrapperEditBox;
 import net.minecraft.ChatFormatting;
@@ -24,6 +25,11 @@ import java.util.function.Predicate;
  */
 @Mixin(value = EditBox.class, priority = 0)
 public abstract class MixinEditBox implements EditBoxController {
+    
+    // 静的初期化ブロックでMixin適用を確認
+    static {
+        ModLogger.debug("[MIXIN-TEST] MixinEditBox class loaded!");
+    }
 
     @Unique private WrapperEditBox caramelChat$wrapper;
     @Unique private int caramelChat$cacheCursorPos, caramelChat$cacheHighlightPos;
@@ -33,29 +39,60 @@ public abstract class MixinEditBox implements EditBoxController {
     @Shadow public String value;
     @Shadow @Final private List<EditBox.TextFormatter> formatters;
 
-    @Redirect(
-        method = "<init>(Lnet/minecraft/client/gui/Font;IIIILnet/minecraft/client/gui/components/EditBox;Lnet/minecraft/network/chat/Component;)V",
-        at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/components/EditBox;setValue(Ljava/lang/String;)V")
+    // より汎用的なコンストラクタパターンを使用
+    @Inject(
+        method = "<init>*",  // すべてのコンストラクタにマッチ
+        at = @At("RETURN")
     )
-    private void init(final EditBox self, final String value) {
-        this.caramelChat$wrapper = new WrapperEditBox((EditBox) (Object) this);
-        self.setValue(value);
+    private void initWrapper(final CallbackInfo ci) {
+        ModLogger.log("[MIXIN-TEST] *** EditBox constructor MIXIN TRIGGERED (generic)! ***");
+        if (this.caramelChat$wrapper == null) {
+            ModLogger.log("[DEBUG-INIT] Creating WrapperEditBox in generic constructor");
+            this.caramelChat$wrapper = new WrapperEditBox((EditBox) (Object) this);
+            ModLogger.log("[DEBUG-INIT] WrapperEditBox created successfully");
+        } else {
+            ModLogger.log("[DEBUG-INIT] Wrapper already exists!");
+        }
     }
 
+    // フォーマッタ追加も汎用的に
     @Inject(
-        method = "<init>(Lnet/minecraft/client/gui/Font;IIIILnet/minecraft/client/gui/components/EditBox;Lnet/minecraft/network/chat/Component;)V",
+        method = "<init>*",
         at = @At("TAIL")
     )
-    private void lazyInit(final CallbackInfo ci) {
+    private void addFormatter(final CallbackInfo ci) {
+        ModLogger.log("[DEBUG-INIT] EditBox addFormatter called");
         if (this.caramelChat$wrapper == null) {
+            ModLogger.log("[DEBUG-INIT] Wrapper is null in addFormatter, creating new WrapperEditBox");
             this.caramelChat$wrapper = new WrapperEditBox((EditBox) (Object) this);
         }
-        this.formatters.add(this.caramelChat$caretFormatter());
+        if (this.formatters != null) {
+            ModLogger.log("[DEBUG-INIT] Adding caret formatter");
+            this.formatters.add(this.caramelChat$caretFormatter());
+            ModLogger.log("[DEBUG-INIT] EditBox formatter addition complete");
+        } else {
+            ModLogger.log("[DEBUG-INIT] formatters list is null!");
+        }
     }
 
     @Override
     public WrapperEditBox caramelChat$wrapper() {
         return caramelChat$wrapper;
+    }
+
+    // tickメソッドでMixinが動作していることを確認（renderよりtickが確実）
+    @Inject(
+        method = "tick", 
+        at = @At("HEAD")
+    )
+    private void onTick(CallbackInfo ci) {
+        if (this.caramelChat$wrapper == null) {
+            ModLogger.log("[MIXIN-TEST] Creating wrapper in tick method!");
+            this.caramelChat$wrapper = new WrapperEditBox((EditBox) (Object) this);
+            if (this.formatters != null && !this.formatters.contains(this.caramelChat$caretFormatter())) {
+                this.formatters.add(this.caramelChat$caretFormatter());
+            }
+        }
     }
 
     // ================================ (Formatter)
@@ -65,11 +102,14 @@ public abstract class MixinEditBox implements EditBoxController {
         // Set caret renderer
         return ((original, firstPos) -> {
             /* Original */
-            if (caramelChat$wrapper.getStatus() == AbstractIMEWrapper.InputStatus.NONE) {
+            ModLogger.log("[DEBUG-FORMATTER] *** caretFormatter CALLED *** - wrapper: {}, status: {}, original: '{}', firstPos: {}", caramelChat$wrapper, caramelChat$wrapper != null ? caramelChat$wrapper.getStatus() : "null", original, firstPos);
+            if (caramelChat$wrapper == null || caramelChat$wrapper.getStatus() == AbstractIMEWrapper.InputStatus.NONE) {
+                ModLogger.log("[DEBUG-FORMATTER] caretFormatter returning null (wrapper is null or status is NONE)");
                 return null;
             }
+            ModLogger.log("[DEBUG-FORMATTER] caretFormatter processing - status: {}, original: '{}'", caramelChat$wrapper.getStatus(), original);
             /* Warning */
-            else if (caramelChat$wrapper.blockTyping()) {
+            if (caramelChat$wrapper.blockTyping()) {
                 return FormattedCharSequence.forward(original, Style.EMPTY.withColor(ChatFormatting.RED));
             }
             /* Custom */
@@ -106,10 +146,13 @@ public abstract class MixinEditBox implements EditBoxController {
     @Inject(method = "setValue", at = @At("HEAD"))
     private void setValueHead(final String text, final CallbackInfo ci) {
         // setStatusToNone -> forceUpdateOrigin -> onValueChange
+        ModLogger.debug("[DEBUG-STATE] setValue called with text: '{}', valueChanged: {}", text, this.caramelChat$wrapper != null ? this.caramelChat$wrapper.valueChanged : "wrapper-null");
         if (this.caramelChat$wrapper != null && this.caramelChat$wrapper.valueChanged) {
+            ModLogger.debug("[DEBUG-STATE] setValue: valueChanged=true, caching cursor positions");
             this.caramelChat$cacheCursorPos = 0;
             this.caramelChat$cacheHighlightPos = 0;
         } else {
+            ModLogger.debug("[DEBUG-STATE] setValue: calling setStatusToNone");
             this.caramelChat$setStatusToNone();
         }
     }
@@ -122,6 +165,7 @@ public abstract class MixinEditBox implements EditBoxController {
         )
     )
     private boolean setValuePredicateTest(final Predicate<String> predicate, final Object value) {
+        ModLogger.debug("[DEBUG-STATE] setValuePredicateTest called");
         if (this.caramelChat$wrapper != null && this.caramelChat$wrapper.valueChanged) {
             this.caramelChat$cacheCursorPos = this.cursorPos;
             this.caramelChat$cacheHighlightPos = this.highlightPos;
@@ -154,6 +198,7 @@ public abstract class MixinEditBox implements EditBoxController {
     @Inject(method = "insertText", at = @At("HEAD"))
     private void insertTextHead(final String text, final CallbackInfo ci) {
         // setStatusToNone -> forceUpdateOrigin -> onValueChange
+        ModLogger.debug("[DEBUG-STATE] insertText called with text: '{}'", text);
         this.caramelChat$setStatusToNone();
     }
 
@@ -188,8 +233,14 @@ public abstract class MixinEditBox implements EditBoxController {
 
     @Inject(method = "setFocused", at = @At("TAIL"))
     private void setFocused(final boolean focused, final CallbackInfo ci) {
+        ModLogger.log("[DEBUG-FOCUS] *** setFocused CALLED *** - focused: {}, canLoseFocus: {}", focused, this.canLoseFocus);
         if (this.caramelChat$wrapper != null) {
-            this.caramelChat$wrapper.setFocused(focused || !this.canLoseFocus);
+            boolean actualFocus = focused || !this.canLoseFocus;
+            ModLogger.log("[DEBUG-FOCUS] calling wrapper.setFocused with: {}", actualFocus);
+            this.caramelChat$wrapper.setFocused(actualFocus);
+            ModLogger.log("[DEBUG-FOCUS] wrapper.setFocused completed");
+        } else {
+            ModLogger.log("[DEBUG-FOCUS] wrapper is null in setFocused");
         }
     }
 
@@ -202,8 +253,12 @@ public abstract class MixinEditBox implements EditBoxController {
 
     @Unique
     private void caramelChat$setStatusToNone() {
+        ModLogger.debug("[DEBUG-STATE] caramelChat$setStatusToNone called");
         if (this.caramelChat$wrapper != null) {
+            ModLogger.debug("[DEBUG-STATE] wrapper exists, calling setToNoneStatus");
             this.caramelChat$wrapper.setToNoneStatus();
+        } else {
+            ModLogger.debug("[DEBUG-STATE] wrapper is null!");
         }
     }
 

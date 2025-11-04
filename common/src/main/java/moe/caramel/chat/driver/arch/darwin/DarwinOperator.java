@@ -19,23 +19,27 @@ public class DarwinOperator implements IOperator {
     private boolean nowFocused;
 
     public DarwinOperator(final DarwinController controller, final AbstractIMEWrapper wrapper) {
+        ModLogger.log("[DEBUG-INIT] *** DarwinOperator constructor START ***");
         this.controller = controller;
         this.wrapper = wrapper;
         this.uuid = UUID.randomUUID().toString();
 
-        ModLogger.debug("[Native|Java] IMEOperator addInstance: " + uuid);
+        ModLogger.log("[DEBUG-INIT] DarwinOperator created with UUID: {}", uuid);
+        ModLogger.log("[DEBUG-INIT] Calling driver.addInstance...");
         this.controller.getDriver().addInstance(
             // UUID
             this.uuid,
             // Insert Text
             (str, position, length) -> {
-                ModLogger.debug("[Native|Java] Textfield (" + uuid + ") received inserted text.");
+                ModLogger.log("[DEBUG-IME] *** INSERT TEXT CALLED *** - text: '{}', position: {}, length: {}, wrapper status: {}", str, position, length, this.wrapper.getStatus());
                 this.wrapper.insertText(str);
+                ModLogger.log("[DEBUG-IME] *** INSERT TEXT COMPLETED ***");
             },
             // Set Marked Text
             (str, position1, length1, position2, length2) -> {
-                ModLogger.debug("[Native|Java] MarkedText changed at (" + uuid + ").");
+                ModLogger.log("[DEBUG-IME] *** SET MARKED TEXT CALLED *** - text: '{}', pos1: {}, len1: {}, pos2: {}, len2: {}, wrapper status: {}", str, position1, length1, position2, length2, this.wrapper.getStatus());
                 this.wrapper.appendPreviewText(str);
+                ModLogger.log("[DEBUG-IME] *** SET MARKED TEXT COMPLETED *** - wrapper status now: {}", this.wrapper.getStatus());
             },
             // Rect Range
             (pointer) -> {
@@ -54,6 +58,7 @@ public class DarwinOperator implements IOperator {
                 pointer.write(0, buff, 0, 4);
             }
         );
+        ModLogger.log("[DEBUG-INIT] *** DarwinOperator initialization COMPLETED *** UUID: {}", uuid);
     }
 
     @Override
@@ -64,9 +69,12 @@ public class DarwinOperator implements IOperator {
     @Override
     public void setFocused(final boolean focus) {
         if (focus != this.nowFocused) {
-            ModLogger.debug("[Native|Java] IMEOperator.setFocused: " + focus);
+            ModLogger.log("[DEBUG-IME] *** IMEOperator.setFocused: {} (uuid: {}) ***", focus, this.uuid);
             this.controller.getDriver().setIfReceiveEvent(this.uuid, (focus ? 1 : 0));
             this.nowFocused = focus;
+            ModLogger.log("[DEBUG-IME] *** setFocused completed: nowFocused={} ***", this.nowFocused);
+        } else {
+            ModLogger.log("[DEBUG-IME] setFocused called but no change: focus={}, nowFocused={}", focus, this.nowFocused);
         }
     }
 

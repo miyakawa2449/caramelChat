@@ -19,17 +19,23 @@ import java.net.URL;
 public final class Main {
 
     static { Main.instance = new Main(); }
-    public static final boolean DEBUG = false;
+    public static final boolean DEBUG = true;
 
     private static Main instance;
     private final IController controller;
 
     private Main() {
+        ModLogger.log("[DEBUG-INIT] *** Main constructor START ***");
+        ModLogger.log("[DEBUG-INIT] Getting IController for platform...");
         this.controller = IController.getController();
+        ModLogger.log("[DEBUG-INIT] Controller created: {}", this.controller.getClass().getSimpleName());
 
         if (controller instanceof UnknownController) {
             ModLogger.error("caramelChat can't find appropriate Controller in running OS");
+        } else {
+            ModLogger.log("[DEBUG-INIT] Controller successfully initialized: {}", this.controller.getClass().getName());
         }
+        ModLogger.log("[DEBUG-INIT] *** Main constructor COMPLETED ***");
     }
 
     /**
